@@ -1,16 +1,15 @@
 const jwt = require("jsonwebtoken");
 const User = require('../models/user')
 
-module.exports = async (req, res, next) => {
-    // Try catch -> validate password
+module.exports = (req, res, next) => {
     try {
         const token = req.headers.authorization.split(" ")[1];
         jwt.verify(token, process.env.JWT_SECRET);
-        let user = await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId})
-        if (user.employee) {
-            next();
+        if (!jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
+            res.status(401).json({ message: "Auth falied!"})
+            return;
         }
-        res.status(401).json({ message: "Auth falied!"})
+        next();
     } catch (error) {
         console.log(error)
         res.status(401).json({ message: "Auth falied!"})

@@ -13,7 +13,7 @@ var controller = {
         const pr = new Project({
             name: req.body.name,
             domain: req.body.domain,
-            client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId,
+            client: req.body.client,
         });
         pr.save()
         .then( result => {

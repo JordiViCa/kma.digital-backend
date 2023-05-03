@@ -1,5 +1,6 @@
 const User = require('../models/user')
 const Client = require('../models/client')
+const Employee = require('../models/employee')
 
 var path = require('path');
 var bcrypt = require('bcrypt');
@@ -54,8 +55,13 @@ var controller = {
                         message: "Auth failed"
                     })
                 }
+                const obj = { email: fetchedUser.email, userId: fetchedUser._id }
+                if (fetchedUser.employee) {
+                    obj.employee = fetchedUser.employee
+                    obj.type = fetchedUser.type
+                }
                 const token = jwt.sign(
-                    { email: fetchedUser.email, userId: fetchedUser._id },
+                    obj,
                     process.env.JWT_SECRET,
                     { expiresIn: process.env.JWT_EXPIRES_IN}
                 );
@@ -110,7 +116,7 @@ var controller = {
     },
     updateClient: async function(req, res) {
         console.log("[POST] Update client")
-        await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["client", "employee"]).then(
+        await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["client"]).then(
             (result) => {
                 update = {}
                 if (req.body.name != result.client.name) {
@@ -143,7 +149,72 @@ var controller = {
                 });
             }
         )
-    }
+    },
+    createEmployee: async function(req,res) {
+        console.log("[POST] Create employee")
+        if (jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).type != 1) {
+            res.status(401).json({ message: "Auth falied!"})
+            return;
+        }
+        new Employee({
+            name: req.body.name,
+            phone: req.body.phone,
+            nif: req.body.nif
+        })
+        .save()
+        .then(
+            emplo => {
+                bcrypt.hash(req.body.password,10, (err, hash) =>  {
+                    const user = new User({
+                        email: req.body.email,
+                        password: hash,
+                        employee: emplo._id
+                    });
+                    // Save user and return with 201 or catch error and display
+                    user.save()
+                        .then( result => {
+                            res.status(200).json({
+                                message: 'Employee created!'
+                            });
+                        })
+                        .catch(err => {
+                            res.status(500).json({
+                                error: err
+                            });
+                        });
+                }); 
+            }
+        );
+    },
+    updateEmployee: async function(req, res) {
+        console.log("[PUT] Update employee")
+        await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["employee"]).then(
+            (result) => {
+                update = {}
+
+                if (req.body.name != result.employee.name) {
+                    update.name = req.body.name
+                }
+                if (req.body.phone != result.employee.phone) {
+                    update.phone = req.body.phone
+                }
+                if (req.body.nif != result.employee.nif) {
+                    update.nif = req.body.nif
+                }
+
+                Employee.findOneAndUpdate({_id: result.client._id},update).then((resu) => {
+                    res.status(200).json({
+                        data: resu
+                    })
+                })
+                .catch(err => {
+                    res.status(500).json({
+                        error: err
+                    });
+                });
+            }
+        )
+    },
 }
 
 module.exports = controller;
