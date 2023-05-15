@@ -26,7 +26,7 @@ var controller = {
                     );
                     res.status(200).json({
                         message: 'User created!',
-                        token: token
+                        jwt: token
                     });
                 })
                 .catch(err => {
@@ -65,9 +65,15 @@ var controller = {
                     process.env.JWT_SECRET,
                     { expiresIn: process.env.JWT_EXPIRES_IN}
                 );
-                res.status(200).json({
+                const objectRes = {
                     jwt: token
-                });
+                }
+                if (fetchedUser.employee) {
+                    objectRes.employee = fetchedUser.employee;
+                }
+                res.status(200).json(
+                    objectRes
+                );
             })
     },
     client: async function(req,res) {
@@ -215,6 +221,22 @@ var controller = {
             }
         )
     },
+    getFiveClients: function(req, res) {
+        console.log("[GET] Me")
+        Client.find({  $or: [{ name: { $regex: new RegExp(req.params.id ,'i')}},{ surname: { $regex: new RegExp(req.params.id ,'i')}},{ company: { $regex: new RegExp(req.params.id ,'i')}},{ phone: { $regex: new RegExp(req.params.id ,'i')}},{ cif: { $regex: new RegExp(req.params.id ,'i')}},]})
+        .limit(5).then(
+            (result) => {
+                res.status(200).json({
+                    data: result
+                })
+            }
+        )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
+        });
+    }
 }
 
 module.exports = controller;

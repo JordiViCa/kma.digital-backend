@@ -7,7 +7,8 @@ const uniqueValidator = require('mongoose-unique-validator');
 var CategorySchema = Schema({
     name: {type: String, required: true},
     color: {type: String, required: true},
-    project: {type: mongoose.Schema.Types.ObjectId, ref: "Project"}
+    project: {type: mongoose.Schema.Types.ObjectId, ref: "Project"},
+    order: {type: Number, default: 0}
 });
 
 CategorySchema.plugin(uniqueValidator)

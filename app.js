@@ -12,6 +12,7 @@ var user_routes = require('./routes/user');
 var chat_routes = require('./routes/chat');
 var project_routes = require('./routes/project');
 var tasks_routes = require('./routes/tasks');
+var contact_routes = require('./routes/contact');
 // Middleware
 // Codifiquem a json tot el que en arriba
 app.use(bodyParser.urlencoded({extended:false}));
@@ -24,7 +25,8 @@ app.use(cors())
 app.use('/api/auth',user_routes);
 app.use('/api/client',chat_routes);
 app.use('/api/projects',project_routes);
-app.use('/api/projects',tasks_routes)
+app.use('/api/dashboard',tasks_routes);
+app.use('/api/contact',contact_routes);
 
 // Exportar
 module.exports=app;

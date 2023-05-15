@@ -9,6 +9,7 @@ var TaskSchema = Schema({
     description: {type: String, required: true},
     difficulty: {type: String},
     deleted: {type: Boolean, default: false},
+    date: {type: Date, required: true},
     created: {type: mongoose.Schema.Types.ObjectId, ref: "User"},
     project: {type: mongoose.Schema.Types.ObjectId, ref: "Project"},
     category: {type: mongoose.Schema.Types.ObjectId, ref: "Category"},

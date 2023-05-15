@@ -64,7 +64,8 @@ var controller = {
     },
     getOne: async function(req,res) {
         console.log("[GET] Get chat")
-        const chat = await Chat.findById({_id: req.params.id}).populate(['messages','project'])
+        const chat = await Chat.findById({_id: req.params.id}).populate(['messages','project','client',{path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}])
+        
         res.status(200).json({
             data: chat
         });
@@ -98,7 +99,80 @@ var controller = {
         if (req.body.pagination > 0) {
             p = req.body.pagination;
         }
-    }
+    },
+    getAllChats: async function(req, res) {
+        console.log("[GET] Get all Chats")
+        Chat.find().populate(['messages','project']).then(
+            chats => {
+                res.status(200).json({
+                    data: chats
+                });
+            }
+        )
+    },
+    getProjectChats: async function(req, res) {
+        console.log("[GET] Get all Chats")
+        Chat.find({project: req.params.id}).populate(['messages','project']).then(
+            chats => {
+                res.status(200).json({
+                    data: chats
+                });
+            }
+        )
+    },
+    markAsRead: async function(req, res) {
+        let params = {
+            seenDate: new Date()
+        }
+        Message.findOneAndUpdate({_id: req.params.id}, params).then(
+            (result) => {
+                res.status(200).json({
+                    data: result
+                })
+            })
+            .catch(err => {
+                res.status(500).json({
+                    error: err
+                });
+            });
+    },
+    markAsResolved: async function(req, res) {
+        let params = {
+            resolt: true
+        }
+        Chat.findOneAndUpdate({_id: req.params.id}, params).then(
+            (result) => {
+                res.status(200).json({
+                    data: result
+                })
+            })
+            .catch(err => {
+                res.status(500).json({
+                    error: err
+                });
+            });
+    },
+    updateChat: async function(req, res) {
+        console.log("[PUT] Update chat")
+        let params = {
+            titol: req.body.title,
+            client: req.body.client,
+            project: req.body.project
+        }
+        Chat.findOneAndUpdate({_id: req.params.id}, params)
+        .populate(['messages','project','client',{path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}])
+        .then(
+            (result) => {
+                res.status(200).json({
+                    data: result
+                })
+            })
+            .catch(err => {
+                res.status(500).json({
+                    error: err
+                });
+            });
+    },
 }
 
 module.exports = controller;

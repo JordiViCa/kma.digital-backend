@@ -19,6 +19,7 @@ var controller = {
             created: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId,
             project: req.body.project,
             category: req.body.category,
+            date: new Date(),
             tracking: [],
         });
         task.save()
@@ -36,17 +37,25 @@ var controller = {
     },
     editTask: async function(req, res) {
         console.log("[POST] Edit Task")
-        const task = Task.findById({_id: req.body.id})
-        if (req.body.title != task.title) {
+        let task;
+        try {
+            task = await Task.findById({_id: req.params.id})
+        } catch (error) {
+            res.status(500).json({
+                error: error
+            });
+            return;
+        }
+        if (req.body.title && req.body.title != task.title) {
             task.title = req.body.title;
         }
-        if (req.body.description != task.description) {
+        if (req.body.description && req.body.description != task.description) {
             task.description = req.body.description;
         }
-        if (req.body.difficulty != task.difficulty) {
+        if (req.body.difficulty && req.body.difficulty != task.difficulty) {
             task.difficulty = req.body.difficulty;
         }
-        if (req.body.category != task.category) {
+        if (req.body.category && req.body.category != task.category) {
             task.category = req.body.category;
         }
         task.save()
@@ -85,7 +94,15 @@ var controller = {
     },
     editTaskError: async function(req, res) {
         console.log("[POST] Edit Task")
-        const task = Task.findById({_id: req.body.id})
+        let task;
+        try {
+            task = await Task.findById({_id: req.body.id})
+        } catch (error) {
+            res.status(500).json({
+                error: error
+            });
+            return;
+        }   
         if (task.created != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
             res.status(401).json({ message: "Auth falied!"})
         }
@@ -110,7 +127,15 @@ var controller = {
     },
     deleteTask: async function(req, res) {
         console.log("[POST] Delete Task")
-        const task = Task.findById({_id: req.body.id})
+        let task;
+        try {
+            task = await Task.findById({_id: req.params.id})
+        } catch (error) {
+            res.status(500).json({
+                error: error
+            });
+            return;
+        }
         task.deleted = true;
         task.save()
         .then( result => {
@@ -147,12 +172,23 @@ var controller = {
     },
     editCategory: async function(req, res) {
         console.log("[POST] Edit Category")
-        const category = Category.findById({_id: req.body.id})
+        let category;
+        try {
+            category = await Category.findById({_id: req.params.id})
+        } catch (error) {
+            res.status(500).json({
+                error: error
+            });
+            return;
+        }
         if (req.body.name != category.name) {
             category.name = req.body.name;
         }
         if (req.body.color != category.color) {
             category.color = req.body.color
+        }
+        if (req.body.order != category.order) {
+            category.order = req.body.order
         }
         category.save()
         .then( result => {
@@ -169,7 +205,7 @@ var controller = {
     },
     deleteCategory: async function(req, res) {
         console.log("[POST] Delete Category")
-        Category.deletedById({_id: req.body.id})
+        Category.deleteOne({_id: req.params.id})
         .then( result => {
             res.status(200).json({
                 message: 'Category deleted',
@@ -186,14 +222,32 @@ var controller = {
         console.log("[POST] Start tracking")
         const tracking = new Tracking({
             employee: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee,
-            description: req.body.description,
             startTrack: new Date()
         });
         tracking.save()
-        .then( result => {
-            res.status(200).json({
-                message: 'Tracking started',
-                data: result
+        .then( async resultT => {
+            let task;
+            try {
+                task = await Task.findById({_id: req.body.task}).populate(['project','category','tracking'])
+            } catch (error) {
+                await Tracking.deleteOne({_id: resultT._id});
+                res.status(500).json({
+                    error: error
+                });
+                return;
+            }
+            task.tracking.push(resultT._id)
+            task.save()
+            .then( result => {
+                res.status(200).json({
+                    message: 'Tracking started',
+                    data: resultT
+                });
+            })
+            .catch(err => {
+                res.status(500).json({
+                    error: err
+                });
             });
         })
         .catch(err => {
@@ -203,8 +257,17 @@ var controller = {
         });
     },
     endTracking: async function(req, res) {
+        // Check if the user doing the edit is the same of the tracking
         console.log("[POST] End tracking")
-        const tracking = Tracking.findById({_id: req.body.id})
+        let tracking;
+        try {
+            tracking = await Tracking.findById({_id: req.body.id})
+        } catch (error) {
+            res.status(500).json({
+                error: error
+            });
+            return;
+        }
         tracking.endTrack = new Date()
         tracking.save()
         .then( result => {
@@ -221,7 +284,7 @@ var controller = {
     },
     deleteTracking: async function(req, res) {
         console.log("[POST] Delete Tracking")
-        Tracking.deletedById({_id: req.body.id})
+        Tracking.deleteOne({_id: req.params.id})
         .then( result => {
             res.status(200).json({
                 message: 'Tracking deleted',
@@ -236,49 +299,85 @@ var controller = {
     },
     getAllTasks: async function(req, res) {
         console.log("[GET] Get all Tasks")
-        const tasks = await Task.find({project: req.body.id}).populate(['project','category','tracking'])
-        if (tasks.project.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
-            res.status(401).json({ message: "Auth falied!"})
-            return;
-        }
-        res.status(200).json({
-            data: tasks
+        Task.find({project: req.body.id}).populate(['project','category','tracking'])
+        .then(
+            tasks => {
+                if (tasks.project.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
+                    res.status(401).json({ message: "Auth falied!"})
+                    return;
+                }
+                res.status(200).json({
+                    data: tasks
+                });
+            }
+        )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
         });
     },
     getAllTasksE: async function(req, res) {
         console.log("[GET] Get all Tasks")
-        const tasks = await Task.find({project: req.body.id}).populate(['project','category','tracking'])
-        res.status(200).json({
-            data: tasks
+        await Task.find({project: req.params.id}).populate(['project','category','tracking'])
+        .then(
+            tasks => {
+                res.status(200).json({
+                    data: tasks
+                });
+            }
+        )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
         });
     },
-    getAllCategories: async function(req, res) {
+    getAllCategories: function(req, res) {
         console.log("[GET] Get all Categories")
-        const categories = await Category.find({project: req.body.id})
-        res.status(200).json({
-            data: categories
+        Category.find({project: req.params.id})
+        .then( async function(result) {
+            res.status(200).json({
+                data: result
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
         });
     },
     getOneTask: async function(req,res) {
         console.log("[GET] Get project")
-        const pr = await Project.findById({_id: req.params.id}).populate(['project','category','tracking'])
-        if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
-            res.status(401).json({ message: "Auth falied!"})
-            return;
-        }
-        res.status(200).json({
-            data: pr
+        Project.findById({_id: req.params.id}).populate(['project','category','tracking']).then(
+            pr => {
+                if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
+                    res.status(401).json({ message: "Auth falied!"})
+                    return;
+                }
+                res.status(200).json({
+                    data: pr
+                });
+            }
+        )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
         });
     },
     getOneTaskE: async function(req,res) {
-        console.log("[GET] Get project")
-        const pr = await Project.findById({_id: req.params.id}).populate(['project','category','tracking'])
-        if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
-            res.status(401).json({ message: "Auth falied!"})
-            return;
-        }
-        res.status(200).json({
-            data: pr
+        console.log("[GET] Get one task")
+        Task.findById({_id: req.params.id}).populate(['project','category','tracking',{path: 'tracking', populate: ['employee']}])
+        .then(task => {
+            res.status(200).json({
+                data: task
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
         });
     },
 }

@@ -11,6 +11,7 @@ var router = express.Router();
 router.post('/register', UserController.signup);
 router.post('/login', UserController.login);
 router.post('/client', checkAuth, UserController.client);
+router.get('/client/:id', checkAuthEmployee, UserController.getFiveClients);
 router.put('/client',checkAuth, UserController.updateClient);
 router.get('/me', checkAuth, UserController.me);
 
