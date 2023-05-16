@@ -8,7 +8,9 @@ var ProjectSchema = Schema({
     name: {type: String, required: true},
     domain: {type: String, required: true},
     client: {type: mongoose.Schema.Types.ObjectId, ref: "Client"},
-    created: {type: Date}
+    created: {type: Date},
+    public: {type: Boolean, default: false},
+    image: {type: String}
 });
 
 ProjectSchema.plugin(uniqueValidator)

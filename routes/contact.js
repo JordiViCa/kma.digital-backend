@@ -10,5 +10,6 @@ var router = express.Router();
 
 router.post('', ContactController.create);
 router.get('', checkAuthEmployee, ContactController.getAll);
+router.put('/:id', checkAuthEmployee, ContactController.markAsSeen);
 
 module.exports = router;

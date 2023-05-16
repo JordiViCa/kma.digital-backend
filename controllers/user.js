@@ -122,7 +122,7 @@ var controller = {
     },
     updateClient: async function(req, res) {
         console.log("[POST] Update client")
-        await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["client"]).then(
+        User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["client"]).then(
             (result) => {
                 update = {}
                 if (req.body.name != result.client.name) {

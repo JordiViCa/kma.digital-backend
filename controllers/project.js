@@ -30,15 +30,24 @@ var controller = {
         });
     },
     edit: async function(req, res) {
-        console.log("[POST] Edit Chat")
-        const pr = Project.findById({_id: req.body.id})
-        if (req.body.name != pr.name) {
-            pr.name = req.body.name;
+        console.log("[POST] Edit project")
+        let params;
+        if (jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {        
+            params = {
+                name: req.body.name,
+                domain: req.body.domain,
+                client: req.body.client,
+                public: req.body.public,
+                image: req.body.image
+            }
+        } else {
+            params = {
+                name: req.body.name,
+                domain: req.body.domain,
+                image: req.body.image
+            }
         }
-        if (req.body.domain != pr.domain) {
-            pr.domain = req.body.domain
-        }
-        pr.save()
+        const pr = Project.findByIdAndUpdate({_id: req.params.id},params, {new: true})
         .then( result => {
             res.status(200).json({
                 message: 'Project modified',
@@ -83,6 +92,22 @@ var controller = {
         .populate(['client'])
         .limit(5).then(
             (result) => {
+                res.status(200).json({
+                    data: result
+                })
+            }
+        )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
+        });
+    },
+    getPublished: function(req,res) {
+        Project.find({public: true})
+        .then(
+            result => {
+                result = result.map(el => ({name: el.name,domain: el.domain,image: el.image}))
                 res.status(200).json({
                     data: result
                 })

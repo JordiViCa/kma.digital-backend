@@ -5,7 +5,7 @@ var Schema = mongoose.Schema;
 const uniqueValidator = require('mongoose-unique-validator');
 
 var ContactSchema = Schema({
-    titol: {type: String, required: true},
+    title: {type: String, required: true},
     email: {type: String, required: true},
     name: {type: String, required: true},
     message: {type: String, required: true},
