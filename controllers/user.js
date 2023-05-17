@@ -57,8 +57,11 @@ var controller = {
                 }
                 const obj = { email: fetchedUser.email, userId: fetchedUser._id }
                 if (fetchedUser.employee) {
-                    obj.employee = fetchedUser.employee
+                    obj.employee = fetchedUser.employee._id
                     obj.type = fetchedUser.type
+                }
+                if (fetchedUser.client) {
+                    obj.client = fetchedUser.client._id
                 }
                 const token = jwt.sign(
                     obj,
@@ -194,8 +197,9 @@ var controller = {
     },
     updateEmployee: async function(req, res) {
         console.log("[PUT] Update employee")
-        await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["employee"]).then(
+        User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["employee"]).then(
             (result) => {
+                console.log(result)
                 update = {}
 
                 if (req.body.name != result.employee.name) {
@@ -207,8 +211,9 @@ var controller = {
                 if (req.body.nif != result.employee.nif) {
                     update.nif = req.body.nif
                 }
-
-                Employee.findOneAndUpdate({_id: result.client._id},update).then((resu) => {
+                console.log(update)
+                Employee.findOneAndUpdate({_id: result.employee._id},update).then((resu) => {
+                    console.log(resu)
                     res.status(200).json({
                         data: resu
                     })
@@ -236,7 +241,45 @@ var controller = {
                 error: err
             });
         });
-    }
+    },
+    changePassword: function(req,res) {
+        console.log("[PUT] Change password")
+        // Find user and compare passwords
+        let fetchedUser;
+        User.findById({_id: req.body.user })
+            .then( user => {
+                if (user == null) {
+                    return false;
+                }
+                fetchedUser = user;
+                return bcrypt.compare(req.body.passwordo, user.password);
+            })
+            // Check result and create jwt, then return token and expiration
+            .then(result => {
+                if (!result) {
+                    return res.status(401).json({
+                        message: "Auth failed"
+                    })
+                }
+                bcrypt.hash(req.body.password,10, (err, hash) =>  {
+                    let params = {
+                        password: hash
+                    }
+                    User.findByIdAndUpdate({_id: req.body.user},params).then()
+                    .then( result => {
+                        res.status(200).json({
+                            message: 'Password changed',
+                            data: result
+                        });
+                    })
+                    .catch(err => {
+                        res.status(500).json({
+                            error: err
+                        });
+                    });
+                }); 
+            })
+    },
 }
 
 module.exports = controller;

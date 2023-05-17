@@ -64,10 +64,18 @@ var controller = {
     },
     getOne: async function(req,res) {
         console.log("[GET] Get chat")
-        const chat = await Chat.findById({_id: req.params.id}).populate(['messages','project','client',{path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}])
-        
-        res.status(200).json({
-            data: chat
+        Chat.findById({_id: req.params.id}).populate(['messages','project','client',{path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}])
+        .then(
+            chat => {
+                res.status(200).json({
+                    data: chat
+                });
+            }
+        )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
         });
     },
     send: async function(req, res) {
@@ -102,20 +110,43 @@ var controller = {
     },
     getAllChats: async function(req, res) {
         console.log("[GET] Get all Chats")
-        Chat.find().populate(['messages','project']).then(
+        Chat.find().populate(['messages','project', {path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}]).then(
             chats => {
+                let ch = JSON.parse(JSON.stringify(chats))
+                for (let i = 0; i < ch.length; i++) {
+                    let unreaded = 0
+                    ch[i].messages.forEach(msg => {
+                        if (!msg.sender.employee && !msg.seenDate) {
+                            unreaded += 1;
+                        }
+                    });
+                    console.log(unreaded)
+                    ch[i]["unreaded"] = unreaded;
+                }
+                console.log(ch[0])
                 res.status(200).json({
-                    data: chats
+                    data: ch
                 });
             }
         )
     },
     getProjectChats: async function(req, res) {
         console.log("[GET] Get all Chats")
-        Chat.find({project: req.params.id}).populate(['messages','project']).then(
+        Chat.find({project: req.params.id}).populate(['messages','project', {path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}]).then(
             chats => {
+                let ch = JSON.parse(JSON.stringify(chats))
+                for (let i = 0; i < ch.length; i++) {
+                    let unreaded = 0
+                    ch[i].messages.forEach(msg => {
+                        if (!msg.sender.employee && !msg.seenDate) {
+                            unreaded += 1;
+                        }
+                    });
+                    console.log(unreaded)
+                    ch[i]["unreaded"] = unreaded;
+                }
                 res.status(200).json({
-                    data: chats
+                    data: ch
                 });
             }
         )
@@ -173,6 +204,7 @@ var controller = {
                 });
             });
     },
+
 }
 
 module.exports = controller;

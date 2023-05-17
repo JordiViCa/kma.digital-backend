@@ -70,7 +70,7 @@ var controller = {
             });
             return;
         }
-        const projects = await Project.find({client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["client"])
+        const projects = await Project.find({client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client}).populate(["client"])
         res.status(200).json({
             data: projects
         });
