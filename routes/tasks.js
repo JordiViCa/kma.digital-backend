@@ -9,18 +9,14 @@ const checkAuthEmployee = require("../middleware/check-auth-employee");
 var router = express.Router();
 
 router.post('/task', checkAuthEmployee, TasksController.createTask);
-router.get('/tasks/:id', checkAuthEmployee, TasksController.getAllTasksE);
-router.get('/task/:id', checkAuthEmployee, TasksController.getOneTaskE);
+router.post('/errortask', checkAuth, TasksController.createTaskError);
+router.get('/tasks/:id', checkAuth, TasksController.getAllTasks);
+router.get('/task/:id', checkAuth, TasksController.getOneTask);
 router.put('/task/:id', checkAuthEmployee, TasksController.editTask);
 router.delete('/task', checkAuthEmployee, TasksController.deleteTask);
 
-router.get('/ctasks', checkAuth, TasksController.getAllTasks);
-router.get('/ctask', checkAuth, TasksController.getOneTask);
-router.post('/ctask', checkAuth, TasksController.createTaskError)
-router.put('/ctask', checkAuth, TasksController.editTaskError)
-
 router.post('/categories', checkAuthEmployee, TasksController.createCategory);
-router.get('/categories/:id', checkAuthEmployee, TasksController.getAllCategories);
+router.get('/categories/:id', checkAuth, TasksController.getAllCategories);
 router.put('/categories/:id', checkAuthEmployee, TasksController.editCategory);
 router.delete('/categories', checkAuthEmployee, TasksController.deleteCategory);
 

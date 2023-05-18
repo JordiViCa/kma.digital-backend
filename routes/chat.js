@@ -14,7 +14,7 @@ router.get('/mychats', checkAuth, ChatController.getAll);
 router.get('/chat/:id', checkAuth, ChatController.getOne);
 router.post('/sendmessage', checkAuth, ChatController.send);
 router.post('/getmessages', checkAuth, ChatController.send);
-router.get('/project/:id', checkAuthEmployee, ChatController.getProjectChats);
+router.get('/project/:id', checkAuth, ChatController.getProjectChats);
 router.get('/allChats', checkAuthEmployee, ChatController.getAllChats);
 router.put('/markAsRead/:id',checkAuth, ChatController.markAsRead);
 router.put('/resolve/:id',checkAuthEmployee, ChatController.markAsResolved);

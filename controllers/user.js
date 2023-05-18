@@ -246,7 +246,8 @@ var controller = {
         console.log("[PUT] Change password")
         // Find user and compare passwords
         let fetchedUser;
-        User.findById({_id: req.body.user })
+        console.log(jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET))
+        User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId})
             .then( user => {
                 if (user == null) {
                     return false;
@@ -265,7 +266,7 @@ var controller = {
                     let params = {
                         password: hash
                     }
-                    User.findByIdAndUpdate({_id: req.body.user},params).then()
+                    User.findByIdAndUpdate({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId},params).then()
                     .then( result => {
                         res.status(200).json({
                             message: 'Password changed',

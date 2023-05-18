@@ -32,6 +32,7 @@ var controller = {
     edit: async function(req, res) {
         console.log("[POST] Edit project")
         let params;
+        let find;
         if (jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {        
             params = {
                 name: req.body.name,
@@ -40,14 +41,15 @@ var controller = {
                 public: req.body.public,
                 image: req.body.image
             }
+            find = {_id: req.params.id}
         } else {
             params = {
                 name: req.body.name,
-                domain: req.body.domain,
-                image: req.body.image
+                domain: req.body.domain
             }
+            find = {_id: req.params.id, client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client}
         }
-        const pr = Project.findByIdAndUpdate({_id: req.params.id},params, {new: true})
+        Project.findOneAndUpdate(find,params, {new: true})
         .then( result => {
             res.status(200).json({
                 message: 'Project modified',
@@ -78,7 +80,7 @@ var controller = {
     getOne: async function(req,res) {
         console.log("[GET] Get project")
         const pr = await Project.findById({_id: req.params.id}).populate(["client"])
-        if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId && !jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
+        if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client && !jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
             res.status(401).json({ message: "Auth falied!"})
             return;
         }

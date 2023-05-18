@@ -10,12 +10,13 @@ const chat = require('../models/chat');
 
 var controller = {
     create: async function(req, res) {
+        // Check first if project for assign the client to the client of the project
         console.log("[POST] Create Chat")
         console.log(req.body)
         const chat = new Chat({
             titol: req.body.titol,
             horaSolicitud: new Date(),
-            client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId,
+            client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client,
         });
         if (req.body.project) {
             chat.project = req.body.project
@@ -57,16 +58,44 @@ var controller = {
     },
     getAll: async function(req, res) {
         console.log("[GET] Get all Chats")
-        const chats = await Chat.find({client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(['messages','project'])
-        res.status(200).json({
-            data: chats
-        });
+        Chat.find({client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client}).populate(['messages','project','client',{path: 'messages', populate: ['sender',{path: 'sender', populate: ['client']}]}])
+        .then(
+            chats => {
+                let ch = JSON.parse(JSON.stringify(chats))
+                for (let i = 0; i < ch.length; i++) {
+                    let unreaded = 0
+                    ch[i].messages.forEach(msg => {
+                        if (msg.sender.employee) {
+                            msg.sender.email = "";
+                        }
+                        if (msg.sender.employee && !msg.seenDate) {
+                            unreaded += 1;
+                        }
+                    });
+                    ch[i]["unreaded"] = unreaded;
+                }
+                res.status(200).json({
+                    data: ch
+                });
+            }
+        )
     },
     getOne: async function(req,res) {
         console.log("[GET] Get chat")
         Chat.findById({_id: req.params.id}).populate(['messages','project','client',{path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}])
         .then(
             chat => {
+                if (!jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee && jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client != chat.client._id) {
+                    res.status(401).json({ message: "Auth falied!"})
+                    return;
+                }
+                chat.messages.map((msg) => {
+                    msg.sender.email = "";
+                    if (msg.sender.employee) {
+                        msg.sender.employee = {name: msg.sender.employee.name}
+                    }
+                    return msg;
+                })
                 res.status(200).json({
                     data: chat
                 });
@@ -116,6 +145,7 @@ var controller = {
                 for (let i = 0; i < ch.length; i++) {
                     let unreaded = 0
                     ch[i].messages.forEach(msg => {
+                        ch[i].messages.sender.email = "";
                         if (!msg.sender.employee && !msg.seenDate) {
                             unreaded += 1;
                         }
@@ -132,17 +162,29 @@ var controller = {
     },
     getProjectChats: async function(req, res) {
         console.log("[GET] Get all Chats")
-        Chat.find({project: req.params.id}).populate(['messages','project', {path: 'messages', populate: ['sender',{path: 'sender', populate: ['employee','client']}]}]).then(
+        Chat.find({project: req.params.id}).populate(['messages','project', {path: 'messages', populate: ['sender',{path: 'sender', populate: ['client']}]}]).then(
             chats => {
+                if (chats[0].project.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client && !jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
+                    res.status(401).json({ message: "Auth falied!"})
+                    return;
+                }
                 let ch = JSON.parse(JSON.stringify(chats))
                 for (let i = 0; i < ch.length; i++) {
                     let unreaded = 0
-                    ch[i].messages.forEach(msg => {
-                        if (!msg.sender.employee && !msg.seenDate) {
-                            unreaded += 1;
-                        }
-                    });
-                    console.log(unreaded)
+                    if (!jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
+                        ch[i].messages.forEach(msg => {
+                            if (msg.sender.employee && !msg.seenDate) {
+                                unreaded += 1;
+                            }
+                        });
+                    } else {
+                        ch[i].messages.forEach(msg => {
+                            ch[i].messages.sender.email = "";
+                            if (!msg.sender.employee && !msg.seenDate) {
+                                unreaded += 1;
+                            }
+                        });
+                    }
                     ch[i]["unreaded"] = unreaded;
                 }
                 res.status(200).json({
@@ -150,6 +192,11 @@ var controller = {
                 });
             }
         )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
+        });
     },
     markAsRead: async function(req, res) {
         let params = {

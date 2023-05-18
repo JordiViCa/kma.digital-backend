@@ -72,23 +72,83 @@ var controller = {
         });
     },
     createTaskError: async function(req, res) {
-        console.log("[POST] Create task")
-        const task = new Task({
-            title: req.body.title,
-            description: req.body.description,
-            project: req.body.project,
-            created: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId
-        });
-        task.save()
-        .then( result => {
-            res.status(200).json({
-                message: 'Task created',
-                data: result
-            });
-        })
+        console.log("[POST] Create task error")
+        Category.findOne({name: "Error", project: req.body.project}).populate(["project"]).then(
+            category => {
+                if (jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client != category.project.client) {
+                    res.status(401).json({ message: "Auth falied!"})
+                    return;
+                }
+                const task = new Task({
+                    title: req.body.title,
+                    description: req.body.description,
+                    project: req.body.project,
+                    created: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId,
+                    category: category._id,
+                    difficulty: 1,
+                    date: new Date(),
+                    tracking: [],
+                });
+                task.save()
+                .then( result => {
+                    res.status(200).json({
+                        message: 'Task created',
+                        data: result
+                    });
+                })
+                .catch(err => {
+                    console.log(err)
+                    res.status(500).json({
+                        error: err
+                    });
+                });
+            }
+        )
         .catch(err => {
-            res.status(500).json({
-                error: err
+            const category = new Category({
+                name: 'Error',
+                color: '#FF0000',
+                project: req.body.project,
+            });
+            category.save()
+            .then( cat => {
+                cat.populate('project').then(
+                    category => {
+                        if (jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client != category.project.client) {
+                            res.status(401).json({ message: "Auth falied!"})
+                            return;
+                        }
+                        const task = new Task({
+                            title: req.body.title,
+                            description: req.body.description,
+                            project: req.body.project,
+                            created: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId,
+                            category: category._id,
+                            difficulty: 1,
+                            date: new Date(),
+                            tracking: [],
+                        });
+                        task.save()
+                        .then( result => {
+                            res.status(200).json({
+                                message: 'Task created',
+                                data: result
+                            });
+                        })
+                        .catch(err => {
+                            console.log(err)
+                            res.status(500).json({
+                                error: err
+                            });
+                        });
+                    }
+                )
+            })
+            .catch(err => {
+                console.log(err)
+                res.status(500).json({
+                    error: err
+                });
             });
         });
     },
@@ -299,29 +359,13 @@ var controller = {
     },
     getAllTasks: async function(req, res) {
         console.log("[GET] Get all Tasks")
-        Task.find({project: req.body.id}).populate(['project','category','tracking'])
-        .then(
-            tasks => {
-                if (tasks.project.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
-                    res.status(401).json({ message: "Auth falied!"})
-                    return;
-                }
-                res.status(200).json({
-                    data: tasks
-                });
-            }
-        )
-        .catch(err => {
-            res.status(500).json({
-                error: err
-            });
-        });
-    },
-    getAllTasksE: async function(req, res) {
-        console.log("[GET] Get all Tasks")
         await Task.find({project: req.params.id}).populate(['project','category','tracking'])
         .then(
             tasks => {
+                if (!jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee && jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client != tasks[0].project.client) {
+                    res.status(401).json({ message: "Auth falied!"})
+                    return;
+                }
                 res.status(200).json({
                     data: tasks
                 });
@@ -334,29 +378,16 @@ var controller = {
         });
     },
     getAllCategories: function(req, res) {
-        console.log("[GET] Get all Categories")
-        Category.find({project: req.params.id})
-        .then( async function(result) {
-            res.status(200).json({
-                data: result
-            });
-        })
-        .catch(err => {
-            res.status(500).json({
-                error: err
-            });
-        });
-    },
-    getOneTask: async function(req,res) {
-        console.log("[GET] Get project")
-        Project.findById({_id: req.params.id}).populate(['project','category','tracking']).then(
-            pr => {
-                if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
+        console.log("[GET] Get all Categories of project")
+        Category.find({project: req.params.id}).populate(["project"])
+        .then( 
+            categories => {
+                if (!jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee && jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client != categories[0].project.client) {
                     res.status(401).json({ message: "Auth falied!"})
                     return;
                 }
                 res.status(200).json({
-                    data: pr
+                    data: categories
                 });
             }
         )
@@ -366,10 +397,18 @@ var controller = {
             });
         });
     },
-    getOneTaskE: async function(req,res) {
+    getOneTask: async function(req,res) {
         console.log("[GET] Get one task")
         Task.findById({_id: req.params.id}).populate(['project','category','tracking',{path: 'tracking', populate: ['employee']}])
         .then(task => {
+            if (!jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee && jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client != task.project.client) {
+                res.status(401).json({ message: "Auth falied!"})
+                return;
+            }
+            task.tracking.map((track) => {
+                track.employee = {_id: track.employee._id, name: track.employee.name}
+                return track;
+            })
             res.status(200).json({
                 data: task
             });
