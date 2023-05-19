@@ -1,0 +1,24 @@
+version: "2"
+services:
+  node:
+    image: "node:16.20.0-alpine"
+    restart: always
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./:/home/node/app
+    expose:
+      - "3700"
+    command: npm run prod
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./db:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: adminKmaDigitalMongo # User for first instance
+      MONGO_INITDB_ROOT_PASSWORD: 1qazZAQ!6608809811qazZAQ! # Password for first instance
