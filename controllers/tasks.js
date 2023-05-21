@@ -302,7 +302,7 @@ var controller = {
             });
         });
     },
-    getAllCategories: function(req, res) {
+    getAllCategories: async function(req, res) {
         console.log("[GET] Get all Categories of project")
         Category.find({project: req.params.id}).populate(["project"])
         .then( 

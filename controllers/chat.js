@@ -117,11 +117,14 @@ var controller = {
         // Save user and return with 201 or catch error and display
         message.save()
         .then( async function(result) {
-            await Chat.findOneAndUpdate({_id: req.body.chat}, { $addToSet: {messages: result._id}})
-            res.status(200).json({
-                message: 'Message sent',
-                data: result
-            });
+            Chat.findOneAndUpdate({_id: req.body.chat}, { $addToSet: {messages: result._id}}).then(
+                chat => {
+                    res.status(200).json({
+                        message: 'Message sent',
+                        data: result
+                    });
+                }
+            )
         })
         .catch(err => {
             res.status(500).json({

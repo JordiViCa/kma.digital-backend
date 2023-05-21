@@ -8,7 +8,7 @@ var jwt = require('jsonwebtoken');
 var fs = require("fs");
 
 var controller = {
-    signup: function(req,res) {
+    signup: async function(req,res) {
         console.log("[POST] Signup")
         // Hash password and create user
         bcrypt.hash(req.body.password,10, (err, hash) =>  {
@@ -36,7 +36,7 @@ var controller = {
                 });
         }); 
     },
-    login: function(req,res) {
+    login: async function(req,res) {
         console.log("[POST] Login")
         // Find user and compare passwords
         let fetchedUser;
@@ -81,31 +81,34 @@ var controller = {
     },
     client: async function(req,res) {
         console.log("[POST] Client")
-        let user = await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId})
-        const client = new Client({
-            name: req.body.name,
-            surname: req.body.surname,
-            company: req.body.company,
-            phone: req.body.phone,
-            cif: req.body.cif,
-            interests: req.body.interests,
-            description: req.body.description,
-        });
-        user.type = 0;
-        user.client = client._id;
-        user.save();
-        client.save()
-        .then( result => {
-            res.status(200).json({
-                message: 'Client created!',
-                token: result
-            });
-        })
-        .catch(err => {
-            res.status(500).json({
-                error: err
-            });
-        });
+        User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).then(
+            user => {
+                const client = new Client({
+                    name: req.body.name,
+                    surname: req.body.surname,
+                    company: req.body.company,
+                    phone: req.body.phone,
+                    cif: req.body.cif,
+                    interests: req.body.interests,
+                    description: req.body.description,
+                });
+                user.type = 0;
+                user.client = client._id;
+                user.save();
+                client.save()
+                .then( result => {
+                    res.status(200).json({
+                        message: 'Client created!',
+                        token: result
+                    });
+                })
+                .catch(err => {
+                    res.status(500).json({
+                        error: err
+                    });
+                });
+            }
+        )
     },
     me: async function(req, res) {
         console.log("[GET] Me")
@@ -228,7 +231,7 @@ var controller = {
             }
         )
     },
-    getFiveClients: function(req, res) {
+    getFiveClients: async function(req, res) {
         console.log("[GET] Me")
         Client.find({  $or: [{ name: { $regex: new RegExp(req.params.id ,'i')}},{ surname: { $regex: new RegExp(req.params.id ,'i')}},{ company: { $regex: new RegExp(req.params.id ,'i')}},{ phone: { $regex: new RegExp(req.params.id ,'i')}},{ cif: { $regex: new RegExp(req.params.id ,'i')}},]})
         .limit(5).then(
@@ -244,16 +247,14 @@ var controller = {
             });
         });
     },
-    changePassword: function(req,res) {
+    changePassword: async function(req,res) {
         console.log("[PUT] Change password")
         // Find user and compare passwords
-        let fetchedUser;
         User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId})
             .then( user => {
                 if (user == null) {
                     return false;
                 }
-                fetchedUser = user;
                 return bcrypt.compare(req.body.passwordo, user.password);
             })
             // Check result and create jwt, then return token and expiration
