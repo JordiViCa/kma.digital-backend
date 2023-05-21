@@ -13,12 +13,12 @@ router.post('/errortask', checkAuth, TasksController.createTaskError);
 router.get('/tasks/:id', checkAuth, TasksController.getAllTasks);
 router.get('/task/:id', checkAuth, TasksController.getOneTask);
 router.put('/task/:id', checkAuthEmployee, TasksController.editTask);
-router.delete('/task', checkAuthEmployee, TasksController.deleteTask);
+router.delete('/task/:id', checkAuthEmployee, TasksController.deleteTask);
 
 router.post('/categories', checkAuthEmployee, TasksController.createCategory);
 router.get('/categories/:id', checkAuth, TasksController.getAllCategories);
 router.put('/categories/:id', checkAuthEmployee, TasksController.editCategory);
-router.delete('/categories', checkAuthEmployee, TasksController.deleteCategory);
+router.delete('/categories/:id', checkAuthEmployee, TasksController.deleteCategory);
 
 router.post('/track', checkAuthEmployee, TasksController.startTracking);
 router.put('/track', checkAuthEmployee, TasksController.endTracking);

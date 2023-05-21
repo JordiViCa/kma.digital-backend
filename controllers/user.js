@@ -109,7 +109,7 @@ var controller = {
     },
     me: async function(req, res) {
         console.log("[GET] Me")
-        await User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["client", "employee"]).then(
+        User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["client", "employee"]).then(
             (result) => {
                 res.status(200).json({
                     data: result
@@ -146,7 +146,7 @@ var controller = {
                 if (req.body.description != result.client.description) {
                     update.description = req.body.description
                 }
-                const client = Client.findOneAndUpdate({_id: result.client._id},update).then((resu) => {
+                Client.findOneAndUpdate({_id: result.client._id},update).then((resu) => {
                     res.status(200).json({
                         data: resu
                     })
@@ -158,6 +158,11 @@ var controller = {
                 });
             }
         )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
+        });
     },
     createEmployee: async function(req,res) {
         console.log("[POST] Create employee")
@@ -199,7 +204,6 @@ var controller = {
         console.log("[PUT] Update employee")
         User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId}).populate(["employee"]).then(
             (result) => {
-                console.log(result)
                 update = {}
 
                 if (req.body.name != result.employee.name) {
@@ -211,9 +215,7 @@ var controller = {
                 if (req.body.nif != result.employee.nif) {
                     update.nif = req.body.nif
                 }
-                console.log(update)
                 Employee.findOneAndUpdate({_id: result.employee._id},update).then((resu) => {
-                    console.log(resu)
                     res.status(200).json({
                         data: resu
                     })
@@ -246,7 +248,6 @@ var controller = {
         console.log("[PUT] Change password")
         // Find user and compare passwords
         let fetchedUser;
-        console.log(jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET))
         User.findById({_id: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId})
             .then( user => {
                 if (user == null) {

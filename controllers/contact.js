@@ -6,7 +6,7 @@ var jwt = require('jsonwebtoken');
 var fs = require("fs");
 
 var controller = {
-    create: function(req, res) {
+    create: async function(req, res) {
         console.log("[POST] Create contact")
         const contact = new Contact({
             title: req.body.title,
@@ -29,7 +29,7 @@ var controller = {
             });
         });
     },
-    getAll: function(req, res) {
+    getAll: async function(req, res) {
         console.log("[GET] Get all contact")
         Contact.find().sort({created: 'descending'}).then(
             (result) => {
@@ -44,7 +44,7 @@ var controller = {
             });
         });    
     },
-    markAsSeen: function(req, res) {
+    markAsSeen: async function(req, res) {
         console.log("[PUT] Mark contact as seen")
         let params = {
             seen: true

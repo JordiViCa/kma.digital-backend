@@ -9,7 +9,6 @@ const checkAuthEmployee = require("../middleware/check-auth-employee");
 var router = express.Router();
 
 router.post('/newchat', checkAuth, ChatController.create);
-router.post('/edit', checkAuth, ChatController.edit);
 router.get('/mychats', checkAuth, ChatController.getAll);
 router.get('/chat/:id', checkAuth, ChatController.getOne);
 router.post('/sendmessage', checkAuth, ChatController.send);

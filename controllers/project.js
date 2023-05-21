@@ -66,27 +66,46 @@ var controller = {
     getAll: async function(req, res) {
         console.log("[GET] Get all Projects")
         if (jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
-            const projects = await Project.find().populate(["client"]).sort({created: 'descending'})
-            res.status(200).json({
-                data: projects
+            Project.find().populate(["client"]).sort({created: 'descending'}).then(
+                projects => {
+                    res.status(200).json({
+                        data: projects
+                    });
+                }
+            )
+            .catch(err => {
+                res.status(500).json({
+                    error: err
+                });
             });
             return;
         }
-        const projects = await Project.find({client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client}).populate(["client"])
-        res.status(200).json({
-            data: projects
+        Project.find({client: jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client}).populate(["client"]).then(
+            projects => {
+                res.status(200).json({
+                    data: projects
+                });
+            }
+        )
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
         });
     },
     getOne: async function(req,res) {
         console.log("[GET] Get project")
-        const pr = await Project.findById({_id: req.params.id}).populate(["client"])
-        if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client && !jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
-            res.status(401).json({ message: "Auth falied!"})
-            return;
-        }
-        res.status(200).json({
-            data: pr
-        });
+        Project.findById({_id: req.params.id}).populate(["client"]).then(
+            pr => {
+                if (pr.client._id != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).client && !jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).employee) {
+                    res.status(401).json({ message: "Auth falied!"})
+                    return;
+                }
+                res.status(200).json({
+                    data: pr
+                });
+            }
+        )
     },
     getFive: async function(req,res) {
         console.log("[GET] Five projects")
@@ -105,7 +124,8 @@ var controller = {
             });
         });
     },
-    getPublished: function(req,res) {
+    getPublished: async function(req,res) {
+        console.log("[GET] Published projects")
         Project.find({public: true})
         .then(
             result => {

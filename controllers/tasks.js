@@ -37,28 +37,13 @@ var controller = {
     },
     editTask: async function(req, res) {
         console.log("[POST] Edit Task")
-        let task;
-        try {
-            task = await Task.findById({_id: req.params.id})
-        } catch (error) {
-            res.status(500).json({
-                error: error
-            });
-            return;
-        }
-        if (req.body.title && req.body.title != task.title) {
-            task.title = req.body.title;
-        }
-        if (req.body.description && req.body.description != task.description) {
-            task.description = req.body.description;
-        }
-        if (req.body.difficulty && req.body.difficulty != task.difficulty) {
-            task.difficulty = req.body.difficulty;
-        }
-        if (req.body.category && req.body.category != task.category) {
-            task.category = req.body.category;
-        }
-        task.save()
+        let task = {
+            title: req.body.title,
+            description: req.body.description,
+            difficulty: req.body.difficulty,
+            category: req.body.category
+        };
+        Task.findByIdAndUpdate({_id: req.params.id},task)
         .then( result => {
             res.status(200).json({
                 message: 'Task modified',
@@ -97,7 +82,6 @@ var controller = {
                     });
                 })
                 .catch(err => {
-                    console.log(err)
                     res.status(500).json({
                         error: err
                     });
@@ -136,7 +120,6 @@ var controller = {
                             });
                         })
                         .catch(err => {
-                            console.log(err)
                             res.status(500).json({
                                 error: err
                             });
@@ -145,59 +128,18 @@ var controller = {
                 )
             })
             .catch(err => {
-                console.log(err)
                 res.status(500).json({
                     error: err
                 });
             });
         });
     },
-    editTaskError: async function(req, res) {
-        console.log("[POST] Edit Task")
-        let task;
-        try {
-            task = await Task.findById({_id: req.body.id})
-        } catch (error) {
-            res.status(500).json({
-                error: error
-            });
-            return;
-        }   
-        if (task.created != jwt.decode(req.headers.authorization.replace("Bearer ", ""), process.env.JWT_SECRET).userId) {
-            res.status(401).json({ message: "Auth falied!"})
-        }
-        if (req.body.title != task.title) {
-            task.title = req.body.title;
-        }
-        if (req.body.description != task.description) {
-            task.description = req.body.description;
-        }
-        task.save()
-        .then( result => {
-            res.status(200).json({
-                message: 'Task modified',
-                data: result
-            });
-        })
-        .catch(err => {
-            res.status(500).json({
-                error: err
-            });
-        });
-    },
     deleteTask: async function(req, res) {
         console.log("[POST] Delete Task")
-        let task;
-        try {
-            task = await Task.findById({_id: req.params.id})
-        } catch (error) {
-            res.status(500).json({
-                error: error
-            });
-            return;
-        }
-        task.deleted = true;
-        task.save()
+        let task = {
+            deleted: true
+        };
+        Task.findByIdAndUpdate({_id: req.params.id},task)
         .then( result => {
             res.status(200).json({
                 message: 'Task deleted',
@@ -232,25 +174,12 @@ var controller = {
     },
     editCategory: async function(req, res) {
         console.log("[POST] Edit Category")
-        let category;
-        try {
-            category = await Category.findById({_id: req.params.id})
-        } catch (error) {
-            res.status(500).json({
-                error: error
-            });
-            return;
-        }
-        if (req.body.name != category.name) {
-            category.name = req.body.name;
-        }
-        if (req.body.color != category.color) {
-            category.color = req.body.color
-        }
-        if (req.body.order != category.order) {
-            category.order = req.body.order
-        }
-        category.save()
+        let category = {
+            name: req.body.name,
+            color: req.body.color,
+            order: req.body.order
+        };
+        Category.findByIdAndUpdate({_id: req.params.id},category)
         .then( result => {
             res.status(200).json({
                 message: 'Category modified',
@@ -286,29 +215,32 @@ var controller = {
         });
         tracking.save()
         .then( async resultT => {
-            let task;
-            try {
-                task = await Task.findById({_id: req.body.task}).populate(['project','category','tracking'])
-            } catch (error) {
-                await Tracking.deleteOne({_id: resultT._id});
-                res.status(500).json({
-                    error: error
-                });
-                return;
-            }
-            task.tracking.push(resultT._id)
-            task.save()
-            .then( result => {
-                res.status(200).json({
-                    message: 'Tracking started',
-                    data: resultT
-                });
+            Task.findById({_id: req.body.task}).populate(['project','category','tracking']).then(
+                (task) => {
+                    task.tracking.push(resultT._id)
+                    task.save()
+                    .then( result => {
+                        res.status(200).json({
+                            message: 'Tracking started',
+                            data: resultT
+                        });
+                    })
+                    .catch(err => {
+                        res.status(500).json({
+                            error: err
+                        });
+                    });
+                }
+            )
+            .catch(error => {
+                Tracking.deleteOne({_id: resultT._id}).then(
+                    result => {
+                        res.status(500).json({
+                            error: error
+                        });
+                    }
+                );
             })
-            .catch(err => {
-                res.status(500).json({
-                    error: err
-                });
-            });
         })
         .catch(err => {
             res.status(500).json({
@@ -319,17 +251,10 @@ var controller = {
     endTracking: async function(req, res) {
         // Check if the user doing the edit is the same of the tracking
         console.log("[POST] End tracking")
-        let tracking;
-        try {
-            tracking = await Tracking.findById({_id: req.body.id})
-        } catch (error) {
-            res.status(500).json({
-                error: error
-            });
-            return;
-        }
-        tracking.endTrack = new Date()
-        tracking.save()
+        let tracking = {
+            endTrack: new Date()
+        };
+        Tracking.findByIdAndUpdate({_id: req.body.id},tracking)
         .then( result => {
             res.status(200).json({
                 message: 'Tracking ended',
