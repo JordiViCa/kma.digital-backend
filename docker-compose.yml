@@ -1,24 +1,44 @@
 version: "2"
 services:
   node:
-    image: "node:16.20.0-alpine"
+    image: "node:16.20.0"
     restart: always
     user: "node"
     working_dir: /home/node/app
+    networks:
+      bbdd:
+        ipv4_address: 192.168.10.11
+      backend:
+        ipv4_address: 192.168.11.11
     environment:
       - NODE_ENV=production
     volumes:
       - ./:/home/node/app
-    expose:
-      - "3700"
+      - /etc/ssl/kmacerts:/etc/ssl/kmacerts
+    ports:
+      - "3700:3700"
     command: npm run prod
   mongo:
     image: mongo
     restart: always
-    ports:
-      - 27017:27017
+    networks:
+      bbdd:
+        ipv4_address: 192.168.10.10
     volumes:
       - ./db:/data/db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: adminKmaDigitalMongo # User for first instance
-      MONGO_INITDB_ROOT_PASSWORD: 1qazZAQ!6608809811qazZAQ! # Password for first instance
+      #MONGO_INITDB_ROOT_USERNAME: # User for first instance
+      #MONGO_INITDB_ROOT_PASSWORD: # Password for first instance
+networks:
+  bbdd:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.10.0/24 
+  backend:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.11.0/24

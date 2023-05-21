@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "prod": "npm install -y && nodemon index.js"
+    "prod": "npm install -y && node indexHTTPS.js"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.3",
     "mongoose-unique-validator": "^4.0.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "npm": "^9.3.0"
   }
 }
